@@ -1,0 +1,13 @@
+# 가상환경 폴더 제외
+venv/
+
+# 파이썬 캐시 파일 제외
+__pycache__/
+*.pyc
+
+# 운영체제 임시 파일 제외
+.DS_Store
+Thumbs.db
+
+# Streamlit 설정 및 임시 파일
+.streamlit/
