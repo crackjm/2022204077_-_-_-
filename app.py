@@ -5,7 +5,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 import matplotlib.pyplot as plt
 import os
 
-# --- [과제 요건 3] 데이터 전처리 및 표준화 캐싱 ---
+# --- 데이터 로드 및 전처리 (캐싱 적용) ---
 @st.cache_data
 def load_and_preprocess_data():
     possible_paths = ['data/2023-2024 NBA Player Stats - Regular.csv', '2023-2024 NBA Player Stats - Regular.csv']
@@ -26,10 +26,7 @@ def load_and_preprocess_data():
     stats_cols = ['PTS', 'AST', 'TRB', 'DEF', '3PM']
     stats_df = df[stats_cols].fillna(0)
     
-    means = stats_df.mean()
-    stds = stats_df.std()
-    
-    # 리그 데이터 표준화 (Z-Score)
+    means, stds = stats_df.mean(), stats_df.std()
     z_stats_df = (stats_df - means) / stds
     
     return df, stats_df, z_stats_df, means, stds
@@ -42,15 +39,9 @@ if 'logged_in' not in st.session_state:
 if 'quiz_step' not in st.session_state:
     st.session_state.quiz_step = 0
 if 'user_stats' not in st.session_state:
-    st.session_state.user_stats = {
-        'PTS': league_means['PTS'], 
-        'AST': league_means['AST'], 
-        'TRB': league_means['TRB'], 
-        'DEF': league_means['DEF'], 
-        '3PM': league_means['3PM']
-    }
+    st.session_state.user_stats = {k: league_means[k] for k in league_means.index}
 
-# --- [과제 요건 1 & 2] 첫 화면 및 로그인 ---
+# --- 첫 화면 및 로그인 ---
 if not st.session_state.logged_in:
     st.title("🏀 NBA 도플갱어 테스트")
     st.markdown("### 🏀 과제 제출자 정보")
@@ -69,7 +60,7 @@ if not st.session_state.logged_in:
         else:
             st.error("🏀 로그인 실패: 학번 또는 이름이 등록된 정보와 다릅니다.")
 
-# --- 퀴즈 진행 (10문항) ---
+# --- 퀴즈 진행 ---
 else:
     with st.sidebar:
         st.write(f"로그인: {st.session_state.student_name}님")
@@ -108,31 +99,25 @@ else:
     # --- 최종 결과 ---
     elif st.session_state.quiz_step == 10:
         user_raw = np.array([st.session_state.user_stats[c] for c in ['PTS', 'AST', 'TRB', 'DEF', '3PM']])
-        user_z_score = (user_raw - league_means.values) / league_stds.values
-        user_z_score = user_z_score.reshape(1, -1)
+        user_z_score = ((user_raw - league_means.values) / league_stds.values).reshape(1, -1)
 
         similarities = cosine_similarity(user_z_score, z_stats_df.values)
         best_match_idx = np.argmax(similarities)
         best_player = df.iloc[best_match_idx]
-        
         player_name = best_player['Name']
+        
         st.subheader(f"당신의 NBA 도플갱어는 **{player_name}** 선수입니다!")
         st.write(f"(일치율: {similarities[0][best_match_idx]*100:.1f}% | 소속팀: {best_player['Tm']})")
         
         youtube_url = f"https://www.youtube.com/results?search_query={player_name.replace(' ','+')}+highlights"
         st.markdown(f'<a href="{youtube_url}" target="_blank"><button style="width:100%; background-color:#FF0000; color:white; padding:10px; border:none; border-radius:5px; cursor:pointer; font-size:16px; font-weight:bold; margin-bottom:20px;">🏀 {player_name} 하이라이트 영상 보기</button></a>', unsafe_allow_html=True)
         
-        # 시각화 카테고리 이름 변경: TRB -> RB, 3PM -> 3PTS
         display_categories = ['PTS', 'AST', 'RB', 'DEF', '3PTS']
         data_categories = ['PTS', 'AST', 'TRB', 'DEF', '3PM']
-        
         max_vals = stats_df.max().values
-        p_vals = best_player[data_categories].values / max_vals
-        u_vals = user_raw / max_vals
-        
+        p_vals = np.concatenate((best_player[data_categories].values / max_vals, [best_player[data_categories].values[0] / max_vals[0]]))
+        u_vals = np.concatenate((user_raw / max_vals, [user_raw[0] / max_vals[0]]))
         angles = np.linspace(0, 2*np.pi, len(display_categories), endpoint=False).tolist()
-        u_vals = np.concatenate((u_vals, [u_vals[0]]))
-        p_vals = np.concatenate((p_vals, [p_vals[0]]))
         angles += angles[:1]
 
         fig, ax = plt.subplots(figsize=(6, 6), subplot_kw=dict(polar=True))
@@ -140,9 +125,8 @@ else:
         ax.fill(angles, u_vals, color='red', alpha=0.25)
         ax.plot(angles, p_vals, color='blue', label=player_name, linewidth=2)
         ax.fill(angles, p_vals, color='blue', alpha=0.25)
-        
         ax.set_xticks(angles[:-1])
-        ax.set_xticklabels(display_categories) # 변경된 이름 적용
+        ax.set_xticklabels(display_categories)
         plt.legend(loc='upper right', bbox_to_anchor=(0.1, 0.1))
         st.pyplot(fig)
 
