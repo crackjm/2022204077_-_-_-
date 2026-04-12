@@ -8,6 +8,7 @@ import os
 # --- 데이터 로드 및 전처리 (캐싱 적용) ---
 @st.cache_data
 def load_and_preprocess_data():
+    print("📢 캐시가 없어서 데이터를 새로 로드하고 계산합니다!")
     possible_paths = ['data/2023-2024 NBA Player Stats - Regular.csv', '2023-2024 NBA Player Stats - Regular.csv']
     df = None
     for path in possible_paths:
