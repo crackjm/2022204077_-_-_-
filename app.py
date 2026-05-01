@@ -4,15 +4,6 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 import matplotlib.pyplot as plt
 import os
-
-st.title("NBA 도플갱어 찾기")
-name = st.text_input("이름을 입력하세요")
-
-if st.button("결과 보기"):
-    st.write(f"{name}님과 닮은 선수는...")
-    # 이 부분이 터미널에 찍힙니다!
-    print(f"로그: 사용자가 '{name}' 이름으로 버튼을 클릭함")
-
 # --- 데이터 로드 및 전처리 (캐싱 적용) ---
 @st.cache_data
 def load_and_preprocess_data():
