@@ -4,10 +4,17 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 import matplotlib.pyplot as plt
 import os
+import datetime
+
+# 터미널 로그 출력을 위한 유틸리티 함수
+def log_to_terminal(message):
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f"[{timestamp}] 🚀 {message}")
+
 # --- 데이터 로드 및 전처리 (캐싱 적용) ---
 @st.cache_data
 def load_and_preprocess_data():
-    print("📢 캐시가 없어서 데이터를 새로 로드하고 계산합니다!")
+    log_to_terminal("캐시가 없어서 데이터를 새로 로드하고 계산합니다!")
     possible_paths = ['data/2023-2024 NBA Player Stats - Regular.csv', '2023-2024 NBA Player Stats - Regular.csv']
     df = None
     for path in possible_paths:
@@ -15,6 +22,7 @@ def load_and_preprocess_data():
             df = pd.read_csv(path, sep=';', encoding='latin-1')
             break
     if df is None:
+        log_to_terminal("데이터 로드 실패: CSV 파일을 찾을 수 없음")
         st.error("🏀 데이터를 찾을 수 없습니다! CSV 파일 위치를 확인하세요.")
         st.stop()
     
@@ -56,8 +64,10 @@ if not st.session_state.logged_in:
         if input_id == "2022204077" and input_name == "박지민":
             st.session_state.logged_in = True
             st.session_state.student_name = input_name
+            log_to_terminal(f"로그인 성공: {input_name} ({input_id})")
             st.rerun()
         else:
+            log_to_terminal(f"로그인 실패 시도: {input_name} / {input_id}")
             st.error("🏀 로그인 실패: 학번 또는 이름이 등록된 정보와 다릅니다.")
 
 # --- 퀴즈 진행 ---
@@ -65,6 +75,7 @@ else:
     with st.sidebar:
         st.write(f"로그인: {st.session_state.student_name}님")
         if st.button("로그아웃"):
+            log_to_terminal(f"로그아웃: {st.session_state.student_name}")
             st.session_state.clear()
             st.rerun()
 
@@ -88,10 +99,12 @@ else:
         q, op1, op2, s1, s2, v1, v2 = questions[st.session_state.quiz_step]
         st.subheader(q)
         if st.button(op1):
+            log_to_terminal(f"퀴즈 응답 {st.session_state.quiz_step + 1}: {op1} 선택")
             st.session_state.user_stats[s1] += v1
             st.session_state.quiz_step += 1
             st.rerun()
         if st.button(op2):
+            log_to_terminal(f"퀴즈 응답 {st.session_state.quiz_step + 1}: {op2} 선택")
             st.session_state.user_stats[s2] += v2
             st.session_state.quiz_step += 1
             st.rerun()
@@ -105,6 +118,9 @@ else:
         best_match_idx = np.argmax(similarities)
         best_player = df.iloc[best_match_idx]
         player_name = best_player['Name']
+        
+        # 결과 로그 출력
+        log_to_terminal(f"결과 계산 완료: 도플갱어는 '{player_name}'")
         
         st.subheader(f"당신의 NBA 도플갱어는 **{player_name}** 선수입니다!")
         st.write(f"(일치율: {similarities[0][best_match_idx]*100:.1f}% | 소속팀: {best_player['Tm']})")
@@ -131,6 +147,7 @@ else:
         st.pyplot(fig)
 
         if st.button("다시 하기"):
+            log_to_terminal("테스트 재시작 선택")
             st.session_state.quiz_step = 0
             st.session_state.user_stats = {k: league_means[k] for k in league_means.index}
             st.rerun()
